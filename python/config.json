@@ -1,0 +1,17 @@
+{
+    "database": {
+        "host": "192.168.2.199",
+        "database": "blueprint_api",
+        "user": "root",
+        "password": "110711",
+        "port": 3306
+    },
+    "table": {
+        "name": "licences",
+        "schema_file": "database/schema.sql"
+    },
+    "license": {
+        "key_length": 32,
+        "export_folder": "database/exports"
+    }
+}

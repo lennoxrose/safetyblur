@@ -1,0 +1,36 @@
+info:
+  name: "Safety Blur"
+  identifier: "safetyblur"
+  description: "to keep info private even when sharing your screen or on screenshots it blurs stuff like email domains etc"
+  flags: ""
+  version: "1.0"
+  target: "beta-2025-09"
+  author: "lennox.rose"
+  icon: "assets/lock.jpg"
+  website: ""
+
+admin:
+  view: "admin/view.blade.php"
+  controller: "controller/controller.php"
+  css: ""
+  wrapper: "admin/wrapper.blade.php"
+
+dashboard:
+  css: "root.css"
+  wrapper: "dashboard/wrapper.blade.php"
+  components: ""
+
+data:
+  directory: "private"
+  public: ""
+
+requests:
+  views: ""
+  app: ""
+  routers:
+    application: ""
+    client: ""
+    web: "routers/web.php"
+
+database:
+  migrations: ""
