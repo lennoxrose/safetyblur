@@ -573,18 +573,18 @@ class LicenseKeyCLI:
         """Search verification_logs for keys used >=2 times that still exist in licences table and offer deletion."""
         self.clear_screen()
         self.display_header()
-        print(self.center_text(f"{Colors.YELLOW}Scanning for potential reused license keys...{Colors.RESET}\n"))
+        print(self.center_text(f"{Colors.YELLOW}Scanning for keys used on multiple domains...{Colors.RESET}\n"))
 
-        findings = self.db.find_warning_keys()
+        findings = self.db.find_multiple_domain_keys()
         if not findings:
-            print(self.center_text(f"{Colors.GREEN}No warnings found.\n{Colors.RESET}"))
+            print(self.center_text(f"{Colors.GREEN}No keys have been used on multiple domains.\n{Colors.RESET}"))
             input(self.center_text(f"\n{Colors.DIM}Press Enter to continue...{Colors.RESET}"))
             return
 
         # Display findings
-        print(self.center_text(f"{Colors.RED}The following license keys have >=2 verification entries and still exist in the licences table:{Colors.RESET}\n"))
-        for idx, (key, product, cnt) in enumerate(findings, start=1):
-            print(self.center_text(f"[{idx}] Key: {key}  Product: {product}  Uses: {cnt}"))
+        print(self.center_text(f"{Colors.RED}The following license keys were used on multiple distinct domains and still exist in the licences table:{Colors.RESET}\n"))
+        for idx, (key, product, domains) in enumerate(findings, start=1):
+            print(self.center_text(f"[{idx}] Key: {key}  Product: {product}  Domains: {domains}"))
 
         print(self.center_text("\nOptions:"))
         print(self.center_text("[d] Delete one key by number"))
@@ -597,7 +597,7 @@ class LicenseKeyCLI:
             return
         if choice == 'a':
             deleted = 0
-            for key, product, cnt in findings:
+            for key, product, domains in findings:
                 if self.db.delete_license(key):
                     deleted += 1
             print(self.center_text(f"\n{Colors.GREEN}Deleted {deleted} keys.{Colors.RESET}"))

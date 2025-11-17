@@ -79,7 +79,7 @@ try {
     // Rate limiting: Check if IP has made too many requests
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
     $rateLimitWindow = 60; // 60 seconds
-    $maxRequestsPerWindow = 10; // Max 10 requests per minute
+    $maxRequestsPerWindow = 30; // Max 30 requests per minute
     
     // Clean up old rate limit entries (older than 5 minutes)
     $pdo->exec("DELETE FROM rate_limits WHERE last_request < DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
