@@ -1,19 +1,39 @@
 {{-- Page-specific blur functionality --}}
+@section('blueprint.import')
+<script>
+  // Inject a blocking style during HTML parse so the browser won't paint
+  // any content until the wrapper removes this element. document.write
+  // runs during parsing and guarantees the style is applied before first paint.
+  try {
+    document.write('<style id="safetyblur-wait">html{visibility:hidden!important}</style>');
+  } catch (e) {
+    // If document.write isn't safe, fall back to setting an attribute which
+    // may be applied slightly later.
+    try { document.documentElement.setAttribute('data-safetyblur-wait', '1'); } catch (e) {}
+  }
+</script>
+@endsection
 {{-- Security: Blur IMMEDIATELY on load, verify license in background, unblur if invalid --}}
 <script>
 (function() {
+  // Debug instrumentation removed: no console logging or PerformanceObserver in production.
   // STEP 1: Enable blur INSTANTLY before any async checks
   document.documentElement.setAttribute('data-safetyblur-enabled', '1');
   document.documentElement.setAttribute('data-safetyblur-initial-load', '1');
+  // Remove the temporary blocking style inserted in <head> so the page becomes visible
+  // now that blur is enabled — prevents a flash of unblurred content.
+  try {
+    var _s = document.getElementById('safetyblur-wait');
+    if (_s && _s.parentNode) _s.parentNode.removeChild(_s);
+    try { document.documentElement.removeAttribute('data-safetyblur-wait'); } catch (e) {}
+  } catch (e) {}
   
   function disableBlur() {
-    console.log('SafetyBlur: License invalid, disabling blur');
     document.documentElement.removeAttribute('data-safetyblur-enabled');
     document.documentElement.removeAttribute('data-safetyblur-initial-load');
   }
   
-  function enableBlur() { 
-    console.log('SafetyBlur: License verified, blur remains enabled');
+  function enableBlur() {
     // Remove initial-load flag to allow animations on hover
     document.documentElement.removeAttribute('data-safetyblur-initial-load');
     // Trigger all blur functions
@@ -40,7 +60,7 @@
         disableBlur();
       }
     }).catch(e => { 
-      console.error('SafetyBlur: Heartbeat failed, assuming invalid:', e);
+      // Heartbeat failed; conservatively disable blur.
       disableBlur();
     });
   }
