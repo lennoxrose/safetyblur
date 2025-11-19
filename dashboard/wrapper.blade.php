@@ -5,7 +5,6 @@
 (function() {
   function enableBlur() { 
     document.documentElement.setAttribute('data-safetyblur-enabled', '1');
-    // Trigger blur function after enabling
     if (typeof blurAddressBlock === 'function') blurAddressBlock();
   }
   function _getCookie(name) {
@@ -63,13 +62,11 @@
 </style>
 
 <script>
-  // Add blur-address class to the Address stat block
   function blurAddressBlock() {
     if (document.documentElement.getAttribute('data-safetyblur-enabled') !== '1') return;
     const headers = document.querySelectorAll('p.font-header');
     
     headers.forEach(header => {
-      // Check if the text content is "Address"
       if (header.textContent.trim() === 'Address') {
 
         const parent = header.closest('div.flex.flex-col');

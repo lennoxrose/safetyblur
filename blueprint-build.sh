@@ -133,6 +133,7 @@ center "Select Blueprint export version"
 echo ""
 center "1) Export v1.0 (beta-2025-09)"
 center "2) Export v1.1 (beta-2025-10)"
+center "3) Export v0.9 (beta-2024-12)"
 echo ""
 # Print a centered prompt line, then read from a simple prompt to avoid mixed output from center() in a command substitution
 center "Enter choice:"
@@ -153,6 +154,13 @@ case "$choice" in
         CONF_FROM="$SCRIPT_DIR/1.1-conf.yml"
         CONF_TO="$SCRIPT_DIR/conf.yml"
         BLUEPRINT_PATH="$SCRIPT_DIR/release/beta-2025-10"
+        ;;
+    3)
+        VERSION="0.9"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        CONF_FROM="$SCRIPT_DIR/0.9-conf.yml"
+        CONF_TO="$SCRIPT_DIR/conf.yml"
+        BLUEPRINT_PATH="$SCRIPT_DIR/release/beta-2024-12"
         ;;
     *)
         center "Invalid choice."

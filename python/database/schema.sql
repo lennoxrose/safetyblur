@@ -1,8 +1,5 @@
--- Safety Blur License Management Database
--- Auto-generated schema file
-
-CREATE DATABASE IF NOT EXISTS licensing;
-USE licensing;
+CREATE DATABASE IF NOT EXISTS licences;
+USE licences;
 
 CREATE TABLE IF NOT EXISTS licences (
     id INT AUTO_INCREMENT PRIMARY KEY,

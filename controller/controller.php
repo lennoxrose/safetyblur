@@ -22,11 +22,9 @@ class safetyblurExtensionController extends Controller
 
     public function index()
     {
-        // Check if license was previously validated
         $licenseKey = $this->blueprint->dbGet('safetyblur', 'license_key');
         $licenseValid = false;
 
-        // Perform live check against API if a key exists; don't trust DB flags
         if ($licenseKey) {
             $licenseValid = $this->performHeartbeatCheck($licenseKey);
         }
@@ -39,11 +37,8 @@ class safetyblurExtensionController extends Controller
 
     private function performHeartbeatCheck(string $licenseKey): bool
     {
-        // SECURITY: Hardcoded verification secret - matches API server
-        // This is compiled into the distributed code, not in a separate file
         $verificationSecret = 'lwmmAa4/xXYtuMj6ti9dR7XICV9X52PxFfgqR1BPf2M=';
         
-        // Load API URL from license.json (if exists) or use default
         $licenseConfigPath = base_path('.blueprint/extensions/safetyblur/private/license.json');
         $apiUrl = 'https://api.lennox-rose.com/v1/blueprint/safetyblur/verify';
         
@@ -52,18 +47,15 @@ class safetyblurExtensionController extends Controller
             $apiUrl = $licenseConfig['api_url'] ?? $apiUrl;
         }
         
-        // SECURITY: Check if this controller file has been modified
         $controllerPath = __FILE__;
         $controllerHash = hash_file('sha256', $controllerPath);
         
-        // Get current domain info
         $domain = request()->getHost();
         $ownerName = $this->settings->get('settings::app:name', 'Unknown');
         $panelVersion = config('app.version', 'Unknown');
         $ipAddress = $this->getPublicIp();
         
         try {
-            // Send heartbeat check to API with file integrity hash
             $response = Http::timeout(5)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
@@ -78,7 +70,7 @@ class safetyblurExtensionController extends Controller
                         'owner_name' => $ownerName,
                         'panel_version' => $panelVersion,
                         'ip_address' => $ipAddress,
-                        'controller_hash' => $controllerHash, // Send file hash to API
+                        'controller_hash' => $controllerHash,
                     ]
                 ]);
 
@@ -87,20 +79,17 @@ class safetyblurExtensionController extends Controller
                 
                 \Log::info('SafetyBlur Heartbeat Response', ['data' => $data]);
                 
-                // Verify the response is genuine using signature
                 if (!isset($data['status'], $data['signature'], $data['timestamp'])) {
                     \Log::error('SafetyBlur: Missing required fields in response');
                     return false;
                 }
                 
-                // Check timestamp is recent (within 60 seconds)
                 $timeDiff = abs(time() - $data['timestamp']);
                 if ($timeDiff > 60) {
                     \Log::error('SafetyBlur: Timestamp too old', ['diff' => $timeDiff]);
                     return false;
                 }
                 
-                // Verify signature: HMAC-SHA256(license_key|timestamp|domain, secret)
                 $expectedSignature = hash_hmac(
                     'sha256',
                     $licenseKey . '|' . $data['timestamp'] . '|' . $domain,
@@ -114,12 +103,10 @@ class safetyblurExtensionController extends Controller
                 ]);
                 
                 if (!hash_equals($expectedSignature, $data['signature'])) {
-                    // Signature mismatch - response was tampered with or forged
                     \Log::error('SafetyBlur: Signature mismatch');
                     return false;
                 }
                 
-                // Signature valid, check status
                 if ($data['status'] === 'good') {
                     \Log::info('SafetyBlur: License valid!');
                     return true;
@@ -127,24 +114,19 @@ class safetyblurExtensionController extends Controller
                 \Log::warning('SafetyBlur: License status not good', ['status' => $data['status']]);
                 return false;
             } else {
-                // If API is unreachable, treat as invalid to prevent bypass
                 return false;
             }
         } catch (\Exception $e) {
-            // On error default to invalid
             return false;
         }
     }
 
-    // Blueprint auto-registers this as admin.extensions.safetyblur.post
     public function post(Request $request): RedirectResponse
     {
-        // Check which action is being performed
         if ($request->has('license_key')) {
             return $this->verifyLicense($request);
         }
         
-        // Default to settings save
         return $this->saveSettings($request);
     }
 
@@ -156,10 +138,8 @@ class safetyblurExtensionController extends Controller
 
         $licenseKey = $request->input('license_key');
         
-        // SECURITY: Get controller file hash
         $controllerHash = hash_file('sha256', __FILE__);
         
-        // Load API URL from license.json (if exists) or use default
         $licenseConfigPath = base_path('.blueprint/extensions/safetyblur/private/license.json');
         $apiUrl = 'https://api.lennox-rose.com/v1/blueprint/safetyblur/verify';
         
@@ -168,7 +148,6 @@ class safetyblurExtensionController extends Controller
             $apiUrl = $licenseConfig['api_url'] ?? $apiUrl;
         }
         
-        // Get domain and owner info
         $domain = $request->getHost();
         $ownerName = $this->settings->get('settings::app:name', 'Unknown');
         $panelVersion = config('app.version', 'Unknown');
@@ -189,7 +168,6 @@ class safetyblurExtensionController extends Controller
         \Log::info('SafetyBlur: Sending verification request', $requestData);
         
         try {
-            // Send verification request with headers
             $response = Http::timeout(10)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
@@ -209,22 +187,18 @@ class safetyblurExtensionController extends Controller
                 if (isset($data['status'])) {
                     switch ($data['status']) {
                         case 'good':
-                            // Store only the license key; validity is always checked live
                             $this->blueprint->dbSet('safetyblur', 'license_key', $licenseKey);
                             return redirect()->route('admin.extensions.safetyblur.index')->with('success', 'License verified successfully!');
                         
                         case 'bad':
-                            // Store the key but indicate inactive via flash; index() will re-check
                             $this->blueprint->dbSet('safetyblur', 'license_key', $licenseKey);
                             return redirect()->route('admin.extensions.safetyblur.index')->with('error', 'License is inactive. Please contact support.');
                         
                         case 'invalid':
-                            // Store the key entered so admin can correct it easily
                             $this->blueprint->dbSet('safetyblur', 'license_key', $licenseKey);
                             return redirect()->route('admin.extensions.safetyblur.index')->with('error', 'Invalid license key.');
                         
                         default:
-                            // Unknown response
                             return redirect()->route('admin.extensions.safetyblur.index')->with('error', 'Unknown response from license server.');
                     }
                 } else {
@@ -240,7 +214,6 @@ class safetyblurExtensionController extends Controller
 
     private function getPublicIp(): string
     {
-        // Cache the detected public IP briefly to minimize network calls
         return Cache::remember('safetyblur_public_ip', 300, function () {
             try {
                 $resp = Http::timeout(3)->acceptJson()->get('https://api.ipify.org?format=json');
@@ -253,14 +226,12 @@ class safetyblurExtensionController extends Controller
             } catch (\Throwable $e) {
                 // ignore
             }
-            // Fallbacks
             return request()->server('SERVER_ADDR', gethostbyname(gethostname()));
         });
     }
 
     public function saveSettings(Request $request): RedirectResponse
     {
-        // Perform heartbeat check before saving
         $licenseKey = $this->blueprint->dbGet('safetyblur', 'license_key');
         
         if (!$licenseKey || !$this->performHeartbeatCheck($licenseKey)) {

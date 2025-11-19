@@ -1,14 +1,9 @@
 {{-- Page-specific blur functionality --}}
 @section('blueprint.import')
 <script>
-  // Inject a blocking style during HTML parse so the browser won't paint
-  // any content until the wrapper removes this element. document.write
-  // runs during parsing and guarantees the style is applied before first paint.
   try {
     document.write('<style id="safetyblur-wait">html{visibility:hidden!important}</style>');
   } catch (e) {
-    // If document.write isn't safe, fall back to setting an attribute which
-    // may be applied slightly later.
     try { document.documentElement.setAttribute('data-safetyblur-wait', '1'); } catch (e) {}
   }
 </script>
@@ -16,12 +11,9 @@
 {{-- Security: Blur IMMEDIATELY on load, verify license in background, unblur if invalid --}}
 <script>
 (function() {
-  // Debug instrumentation removed: no console logging or PerformanceObserver in production.
-  // STEP 1: Enable blur INSTANTLY before any async checks
   document.documentElement.setAttribute('data-safetyblur-enabled', '1');
   document.documentElement.setAttribute('data-safetyblur-initial-load', '1');
-  // Remove the temporary blocking style inserted in <head> so the page becomes visible
-  // now that blur is enabled — prevents a flash of unblurred content.
+
   try {
     var _s = document.getElementById('safetyblur-wait');
     if (_s && _s.parentNode) _s.parentNode.removeChild(_s);
@@ -34,9 +26,8 @@
   }
   
   function enableBlur() {
-    // Remove initial-load flag to allow animations on hover
     document.documentElement.removeAttribute('data-safetyblur-initial-load');
-    // Trigger all blur functions
+
     if (typeof blurKeyFields === 'function') blurKeyFields();
     if (typeof blurApiKeys === 'function') blurApiKeys();
     if (typeof blurDatabaseRows === 'function') blurDatabaseRows();
@@ -45,7 +36,6 @@
     if (typeof blurUserFormGroups === 'function') blurUserFormGroups();
   }
   
-  // STEP 2: Verify license in background
   function checkNow() {
     fetch('{{ route("admin.extensions.safetyblur.heartbeat") }}', {
       method: 'POST',
@@ -60,13 +50,10 @@
         disableBlur();
       }
     }).catch(e => { 
-      // Heartbeat failed; conservatively disable blur.
       disableBlur();
     });
   }
   
-  // Don't run heartbeat on settings page (already validated during page render)
-  // Check immediately on other admin pages, then every 5 minutes
   if (!window.location.pathname.includes('/admin/extensions/safetyblur')) {
     checkNow();
   }
@@ -77,13 +64,11 @@
 @if(Request::is('admin/settings/advanced') && $blueprint->dbGet('safetyblur', 'blur_admin_recaptcha') != '0')
   {{-- Blur Site Key and Secret Key fields --}}
   <style>
-    /* Initial load: instant blur with no transition */
     [data-safetyblur-enabled="1"][data-safetyblur-initial-load="1"] .blur-key-field {
       filter: blur(5px) !important;
       transition: none !important;
     }
     
-    /* After initial load: blur with smooth transition */
     [data-safetyblur-enabled="1"]:not([data-safetyblur-initial-load]) .blur-key-field {
       filter: blur(5px) !important;
       transition: filter 0.2s ease;
@@ -129,13 +114,11 @@
 @if(Request::is('admin/api') && $blueprint->dbGet('safetyblur', 'blur_admin_api') != '0')
   {{-- Blur API keys in table rows (except header row) --}}
   <style>
-    /* Initial load: instant blur */
     [data-safetyblur-enabled="1"][data-safetyblur-initial-load="1"] .blur-api-row {
       filter: blur(5px) !important;
       transition: none !important;
     }
     
-    /* After initial load: animated blur */
     [data-safetyblur-enabled="1"]:not([data-safetyblur-initial-load]) .blur-api-row {
       filter: blur(5px) !important;
       transition: filter 0.2s ease;
@@ -154,7 +137,6 @@
       tables.forEach(table => {
         const rows = table.querySelectorAll('tr');
         
-        // Skip the first row (header) and blur all data rows
         rows.forEach((row, index) => {
           if (index > 0) { // Skip first tr (header)
             row.classList.add('blur-api-row');
@@ -200,9 +182,8 @@
       tables.forEach(table => {
         const rows = table.querySelectorAll('tr');
         
-        // Skip the first row (header) and blur all data rows
         rows.forEach((row, index) => {
-          if (index > 0) { // Skip first tr (header)
+          if (index > 0) {
             row.classList.add('blur-db-row');
           }
         });
@@ -241,7 +222,6 @@
   <script>
     function blurUserRows() {
       if (document.documentElement.getAttribute('data-safetyblur-enabled') !== '1') return;
-      // Target tbody and find all tr.align-middle rows
       const tbody = document.querySelector('tbody');
       
       if (tbody) {
@@ -286,10 +266,8 @@
   <script>
     function blurServerRows() {
       if (document.documentElement.getAttribute('data-safetyblur-enabled') !== '1') return;
-      // Target all tr elements with data-server attribute
       const rows = document.querySelectorAll('tr[data-server]');
       
-      // Blur each server row
       rows.forEach((row) => {
         row.classList.add('blur-server-row');
       });
@@ -327,19 +305,16 @@
   <script>
     function blurUserFormGroups() {
       if (document.documentElement.getAttribute('data-safetyblur-enabled') !== '1') return;
-      // Find the "Identity" box by looking for the box-title
       const boxTitles = document.querySelectorAll('.box-title');
       
       boxTitles.forEach(title => {
         if (title.textContent.trim() === 'Identity') {
-          // Get the parent box and find its box-body
           const box = title.closest('.box');
           if (box) {
             const boxBody = box.querySelector('.box-body');
             if (boxBody) {
               const formGroups = boxBody.querySelectorAll('.form-group');
               
-              // Blur each form-group individually in Identity box only
               formGroups.forEach((formGroup) => {
                 formGroup.classList.add('blur-form-group');
               });

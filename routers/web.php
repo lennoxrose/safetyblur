@@ -3,8 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Pterodactyl\Http\Controllers\Admin\Extensions\safetyblur\safetyblurExtensionController;
 
-// Blueprint adds 'extensions/safetyblur' prefix automatically
-// GET route for settings page
 Route::get('/', [safetyblurExtensionController::class, 'index'])->name('admin.extensions.safetyblur.index');
 
 // POST routes

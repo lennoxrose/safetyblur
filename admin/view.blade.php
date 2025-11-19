@@ -76,12 +76,10 @@
                   return false;
                 }
                 
-                // Disable submission for 5 seconds
                 canSubmit = false;
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Verifying...';
                 
-                // Show countdown after form submits
                 setTimeout(() => {
                   let timeLeft = 5;
                   timer.style.display = 'inline';

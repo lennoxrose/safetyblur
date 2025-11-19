@@ -31,7 +31,6 @@ php artisan config:clear 2>/dev/null || true
 
 echo -e "Configure your blur settings at: \x1b[33m{domain}/admin/extensions/$EXTENSION_IDENTIFIER\x1b[0m\n"
 
-# Backup and modify admin layout to include blocking style for SafetyBlur
 ADMIN_LAYOUT="$PTERODACTYL_DIRECTORY/resources/views/layouts/admin.blade.php"
 if [ -f "$ADMIN_LAYOUT" ]; then
     # Create a timestamped backup to allow restore on uninstall
@@ -42,11 +41,8 @@ if [ -f "$ADMIN_LAYOUT" ]; then
 
     # Inject blocking style into the admin layout head if not already present.
     if ! grep -q 'safetyblur-wait' "$ADMIN_LAYOUT" 2>/dev/null; then
-        # Prefer inserting right after the opening <head> tag for consistent indentation and newline handling.
-        # Use perl for robust in-place edits that reliably insert real newlines.
         perl -0777 -i -pe 'if(!/safetyblur-wait/){ s|(<head[^>]*>)|$1\n        <style id="safetyblur-wait">html{visibility:hidden!important}</style>|i }' "$ADMIN_LAYOUT" 2>/dev/null || true
 
-        # If the previous operation didn't find a <head> tag (rare), insert before the first <meta charset> as a fallback.
         if ! grep -q 'safetyblur-wait' "$ADMIN_LAYOUT" 2>/dev/null; then
             perl -0777 -i -pe 'if(!/safetyblur-wait/){ s|(<meta charset)|        <style id="safetyblur-wait">html{visibility:hidden!important}</style>\n$1|i }' "$ADMIN_LAYOUT" 2>/dev/null || true
         fi
