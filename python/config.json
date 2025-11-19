@@ -1,9 +1,9 @@
 {
     "database": {
-        "host": "192.168.2.199",
-        "database": "blueprint_api",
-        "user": "root",
-        "password": "110711",
+        "host": "",
+        "database": "",
+        "user": "",
+        "password": "",
         "port": 3306
     },
     "table": {
