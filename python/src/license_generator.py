@@ -210,6 +210,23 @@ class LicenseDatabase:
             print(f"{Colors.RED}Error searching for multi-domain keys: {e}{Colors.RESET}")
             return []
 
+    def find_unused_keys(self, log_table: str = 'verification_logs') -> List[tuple]:
+        try:
+            cursor = self.connection.cursor()
+            query = (
+                f"SELECT l.license_key, l.product, l.created_at "
+                f"FROM {TABLE_NAME} l "
+                f"LEFT JOIN {log_table} v ON l.license_key = v.license_key "
+                f"WHERE v.license_key IS NULL"
+            )
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            cursor.close()
+            return [(row[0], row[1], row[2]) for row in rows]
+        except Error as e:
+            print(f"{Colors.RED}Error searching for unused keys: {e}{Colors.RESET}")
+            return []
+
     def clear_verification_logs(self, log_table: str = 'verification_logs') -> bool:
         try:
             cursor = self.connection.cursor()
@@ -310,10 +327,11 @@ class LicenseKeyCLI:
             "",
             f"{Colors.CYAN}[1]{Colors.RESET} Generate Single License Key",
             f"{Colors.CYAN}[2]{Colors.RESET} Look for Warnings (possible reused keys)",
-            f"{Colors.CYAN}[3]{Colors.RESET} Add Test Product",
-            f"{Colors.CYAN}[4]{Colors.RESET} Clear verification_logs table",
-            f"{Colors.CYAN}[5]{Colors.RESET} Database Information",
-            f"{Colors.CYAN}[6]{Colors.RESET} Exit",
+            f"{Colors.CYAN}[3]{Colors.RESET} View Unused License Keys",
+            f"{Colors.CYAN}[4]{Colors.RESET} Add Test Product",
+            f"{Colors.CYAN}[5]{Colors.RESET} Clear verification_logs table",
+            f"{Colors.CYAN}[6]{Colors.RESET} Database Information",
+            f"{Colors.CYAN}[7]{Colors.RESET} Exit",
             ""
         ]
 
@@ -529,6 +547,24 @@ class LicenseKeyCLI:
 
         input(self.center_text(f"\n{Colors.DIM}Press Enter to continue...{Colors.RESET}"))
 
+    def show_unused_keys(self):
+        self.clear_screen()
+        self.display_header()
+        print(self.center_text(f"{Colors.YELLOW}Searching for unused license keys...{Colors.RESET}\n"))
+
+        findings = self.db.find_unused_keys()
+        if not findings:
+            print(self.center_text(f"{Colors.GREEN}No unused license keys found.\n{Colors.RESET}"))
+            input(self.center_text(f"\n{Colors.DIM}Press Enter to continue...{Colors.RESET}"))
+            return
+
+        print(self.center_text(f"{Colors.CYAN}The following license keys exist in the licences table but have never appeared in verification_logs:{Colors.RESET}\n"))
+        for idx, (key, product, created_at) in enumerate(findings, start=1):
+            created_str = str(created_at) if created_at is not None else ''
+            print(self.center_text(f"[{idx}] Key: {key}  Product: {product}  Created: {created_str}"))
+
+        input(self.center_text(f"\n{Colors.DIM}Press Enter to continue...{Colors.RESET}"))
+
     def load_products(self) -> List[str]:
         try:
             if not os.path.exists(self.products_file):
@@ -629,12 +665,14 @@ class LicenseKeyCLI:
             elif choice == '2':
                 self.show_warnings()
             elif choice == '3':
-                self.add_test_product()
+                self.show_unused_keys()
             elif choice == '4':
-                self.clear_verification_logs_flow()
+                self.add_test_product()
             elif choice == '5':
-                self.show_database_info()
+                self.clear_verification_logs_flow()
             elif choice == '6':
+                self.show_database_info()
+            elif choice == '7':
                 self.clear_screen()
                 print(f"\n{self.center_text(f'{Colors.GREEN}Thank you for using Safety Blur License Generator!{Colors.RESET}')}\n")
                 self.db.disconnect()
